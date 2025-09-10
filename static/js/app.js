@@ -1,90 +1,107 @@
-// --- App State ---
+// --- App State & Initialization ---
 const state = {
     currentUser: null,
     services: [],
-    branches: [],
     queues: [],
+    branches: [],
     users: [],
-    // ... other state ...
+    pendingRegistrations: [],
+    lastCalled: {}, // To track TTS announcements
 };
 
-// --- Socket.IO Connection ---
+document.addEventListener('DOMContentLoaded', () => {
+    initializeApp();
+});
+
+async function initializeApp() {
+    setupStaticEventListeners();
+    await checkLoginStatus();
+    socket.emit('request_initial_data');
+}
+
+// --- Socket.IO Handlers ---
 const socket = io(window.location.origin);
-socket.on('connect', () => socket.emit('request_initial_data'));
+
+socket.on('connect', () => console.log('Connected to WebSocket server.'));
+
 socket.on('update_data', (data) => {
-    console.log('Received data update');
+    console.log('Received data update:', data);
 
     // --- TTS Logic ---
-    // Check for newly called numbers before updating state
-    if (state.services && state.services.length > 0 && document.getElementById('publicDisplayPage').offsetParent) {
-        const previousState = { ...state };
-        const newState = { ...state, ...data };
-
-        newState.services.forEach(service => {
+    if (document.getElementById('publicDisplayPage')?.offsetParent && data.services) {
+        data.services.forEach(service => {
             const serviceName = service.name.toLowerCase();
-            const oldCalledQueue = previousState.queues.find(q => q.service === serviceName && q.status === 'called');
-            const newCalledQueue = newState.queues.find(q => q.service === serviceName && q.status === 'called');
+            const newCalledQueue = data.queues.find(q => q.service.toLowerCase() === serviceName && q.status === 'called');
 
-            if (newCalledQueue && (!oldCalledQueue || oldCalledQueue.id !== newCalledQueue.id)) {
-                const formattedNumber = formatQueueNumberForSpeech(newCalledQueue.number);
-                const message = `Now serving, ${formattedNumber}, at the ${service.name} counter.`;
-                speak(message);
+            if (newCalledQueue && state.lastCalled[serviceName] !== newCalledQueue.number) {
+                state.lastCalled[serviceName] = newCalledQueue.number;
+                const formattedNumber = newCalledQueue.number.split('').join(' ');
+                speak(`Now serving, ${formattedNumber}, at the ${service.name} counter.`);
             }
         });
     }
 
-    // Merge new data into state
     Object.assign(state, data);
-    updateAllUI();
-});
-socket.on('notification', (data) => showNotification(data.message, data.type || 'info'));
-
-
-// --- Initialization ---
-document.addEventListener('DOMContentLoaded', () => {
-    setupStaticEventListeners();
+    renderAllComponents();
 });
 
-function updateAllUI() {
-    if (state.currentUser) {
-        showNavbar();
-        if (state.currentUser.role === 'admin') {
-            showPage('adminDashboard');
-            renderAdminDashboard();
-        } else {
-            showPage('staffDashboard');
-            renderStaffDashboard();
-        }
-    } else {
-        hideNavbar();
+// --- Main Rendering Controller ---
+function renderAllComponents() {
+    if (!state.currentUser) {
         showPage('queueSystemPage');
+        hideNavbar();
+    } else if (state.currentUser.role === 'admin') {
+        showPage('adminDashboard');
+        showNavbar();
+        renderAdminDashboard();
+    } else {
+        showPage('staffDashboard');
+        showNavbar();
+        renderStaffDashboard();
     }
     renderPublicDisplay();
+    renderServiceCards();
 }
 
-// --- Event Listeners ---
-function setupStaticEventListeners() {
-    document.getElementById('staffLoginForm').addEventListener('submit', (e) => { e.preventDefault(); staffLogin(); });
-    document.getElementById('addBranchForm').addEventListener('submit', (e) => { e.preventDefault(); handleAddOrEditBranch(); });
-    document.getElementById('addUserForm').addEventListener('submit', (e) => { e.preventDefault(); handleAddOrEditUser(); });
-    document.getElementById('addServiceForm').addEventListener('submit', (e) => { e.preventDefault(); handleAddOrEditService(); });
-    // ... other listeners ...
+// --- Component Rendering ---
+function renderPublicDisplay() {
+    if (!state.services) return;
+    state.services.forEach(service => {
+        const serviceName = service.name.toLowerCase();
+        const servingQueue = state.queues.find(q => q.service.toLowerCase() === serviceName && ['called', 'serving'].includes(q.status));
+        const waitingQueues = state.queues.filter(q => q.service.toLowerCase() === serviceName && q.status === 'waiting');
+
+        const numberEl = document.getElementById(`public${service.name}Number`);
+        if(numberEl) numberEl.textContent = servingQueue ? servingQueue.number : '-';
+
+        const statusEl = document.getElementById(`public${service.name}Status`);
+        if(statusEl) statusEl.textContent = servingQueue ? servingQueue.status.toUpperCase() : '';
+
+        const waitingEl = document.getElementById(`public${service.name}Waiting`);
+        if(waitingEl) {
+            waitingEl.innerHTML = '';
+            waitingQueues.slice(0, 5).forEach(q => {
+                const div = document.createElement('div');
+                div.className = 'display-waiting-number';
+                div.textContent = q.number;
+                waitingEl.appendChild(div);
+            });
+        }
+    });
+}
+function renderStaffDashboard() { /* Placeholder */ }
+function renderAdminDashboard() { /* Placeholder */ }
+function renderServiceCards() { /* Placeholder */ }
+
+// --- API & Event Handlers ---
+async function checkLoginStatus() {
+    try {
+        const response = await fetch('/api/status');
+        const data = await response.json();
+        state.currentUser = data.logged_in ? data.user : null;
+    } catch(e) { console.error("API status check failed", e); }
 }
 
-// --- Page & Modal Navigation ---
-function hideAllPages() { /* hide all pages */ }
-function showPage(pageId) { /* hide all, then show one */ }
-function showNavbar() { /* show authed navbar */ }
-function hideNavbar() { /* hide authed navbar */ }
-
-function showModal(modalId) {
-    document.getElementById(modalId).style.display = 'block';
-}
-function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
-}
-
-// --- Authentication ---
 async function staffLogin() {
     const username = document.getElementById('staffUsername').value;
     const password = document.getElementById('staffPassword').value;
@@ -95,196 +112,56 @@ async function staffLogin() {
     });
     if (response.ok) {
         state.currentUser = await response.json();
-        updateAllUI();
+        renderAllComponents();
     } else {
         showNotification('Invalid credentials', 'error');
     }
 }
 
-async function logout() {
-    await fetch('/api/logout', { method: 'POST' });
-    state.currentUser = null;
-    updateAllUI();
-}
+function callNext() { socket.emit('staff_action', { action: 'call_next' }); }
 
-// --- Admin Dashboard Rendering ---
-function renderAdminDashboard() {
-    if (!state.currentUser || state.currentUser.role !== 'admin') return;
-    renderBranchesTable();
-    renderUsersTable();
-    renderServicesTable();
-    // ... render other admin components ...
-}
-
-function renderBranchesTable() {
-    const tbody = document.getElementById('branchesTableBody');
-    tbody.innerHTML = '';
-    state.branches.forEach(branch => {
-        const row = tbody.insertRow();
-        row.innerHTML = `
-            <td>${branch.name}</td>
-            <td>${branch.address}</td>
-            <td>${branch.contact}</td>
-            <td>${branch.status}</td>
-            <td>
-                <button onclick="showEditBranchModal(${branch.id})" class="action-btn edit-btn"><i class="fas fa-edit"></i></button>
-                <button onclick="deleteBranch(${branch.id})" class="action-btn delete-btn"><i class="fas fa-trash"></i></button>
-            </td>
-        `;
-    });
-}
-
-function renderUsersTable() {
-    const tbody = document.getElementById('usersTableBody');
-    tbody.innerHTML = '';
-    state.users.forEach(user => {
-        const row = tbody.insertRow();
-        row.innerHTML = `
-            <td>${user.username}</td>
-            <td>${user.full_name}</td>
-            <td>${user.role}</td>
-            <td>${state.branches.find(b => b.id === user.branch_id)?.name || 'N/A'}</td>
-            <td>${user.status}</td>
-            <td>
-                <button onclick="showEditUserModal(${user.id})" class="action-btn edit-btn"><i class="fas fa-edit"></i></button>
-                <button onclick="deleteUser(${user.id})" class="action-btn delete-btn"><i class="fas fa-trash"></i></button>
-            </td>
-        `;
-    });
-}
-
-function renderServicesTable() {
-    const tbody = document.getElementById('servicesTableBody');
-    tbody.innerHTML = '';
-    state.services.forEach(service => {
-        const row = tbody.insertRow();
-        row.innerHTML = `
-            <td>${service.name}</td>
-            <td>${service.description}</td>
-            <td><i class="fas ${service.icon}"></i></td>
-            <td>${service.status}</td>
-            <td>
-                <button onclick="showEditServiceModal(${service.id})" class="action-btn edit-btn"><i class="fas fa-edit"></i></button>
-                <button onclick="deleteService(${service.id})" class="action-btn delete-btn"><i class="fas fa-trash"></i></button>
-            </td>
-        `;
-    });
-}
-
-
-// --- Admin CRUD Handlers ---
-
-// Branches
-function showAddBranchModal() {
-    document.getElementById('addBranchForm').reset();
-    document.getElementById('addBranchForm').removeAttribute('data-editing-id');
-    showModal('addBranchModal');
-}
-function showEditBranchModal(id) {
-    const branch = state.branches.find(b => b.id === id);
-    if (!branch) return;
-    document.getElementById('branchName').value = branch.name;
-    document.getElementById('branchAddress').value = branch.address;
-    document.getElementById('branchContact').value = branch.contact;
-    document.getElementById('addBranchForm').setAttribute('data-editing-id', id);
-    showModal('addBranchModal');
-}
-async function handleAddOrEditBranch() {
-    const form = document.getElementById('addBranchForm');
-    const id = form.getAttribute('data-editing-id');
-    const data = {
-        name: document.getElementById('branchName').value,
-        address: document.getElementById('branchAddress').value,
-        contact: document.getElementById('branchContact').value,
-    };
-    const url = id ? `/api/admin/branches/${id}` : '/api/admin/branches';
-    const method = id ? 'PUT' : 'POST';
-    await fetch(url, { method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-    closeModal('addBranchModal');
-    // UI will update via WebSocket
-}
-async function deleteBranch(id) {
-    if (!confirm('Are you sure?')) return;
-    await fetch(`/api/admin/branches/${id}`, { method: 'DELETE' });
-}
-
-// Users
-function showAddUserModal() {
-    document.getElementById('addUserForm').reset();
-    document.getElementById('addUserForm').removeAttribute('data-editing-id');
-    const branchSelect = document.getElementById('newUserBranch');
-    branchSelect.innerHTML = state.branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
-    showModal('addUserModal');
-}
-function showEditUserModal(id) {
-    const user = state.users.find(u => u.id === id);
-    if (!user) return;
-    document.getElementById('newUsername').value = user.username;
-    document.getElementById('newFullName').value = user.full_name;
-    document.getElementById('newUserRole').value = user.role;
-    const branchSelect = document.getElementById('newUserBranch');
-    branchSelect.innerHTML = state.branches.map(b => `<option value="${b.id}" ${b.id === user.branch_id ? 'selected' : ''}>${b.name}</option>`).join('');
-    document.getElementById('addUserForm').setAttribute('data-editing-id', id);
-    showModal('addUserModal');
-}
-async function handleAddOrEditUser() {
-    const form = document.getElementById('addUserForm');
-    const id = form.getAttribute('data-editing-id');
-    const data = {
-        username: document.getElementById('newUsername').value,
-        full_name: document.getElementById('newFullName').value,
-        email: `user${Date.now()}@example.com`, // Placeholder
-        role: document.getElementById('newUserRole').value,
-        branch_id: document.getElementById('newUserBranch').value,
-        password: document.getElementById('newPassword').value,
-    };
-    const url = id ? `/api/admin/users/${id}` : '/api/admin/users';
-    const method = id ? 'PUT' : 'POST';
-    await fetch(url, { method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-    closeModal('addUserModal');
-}
-async function deleteUser(id) {
-    if (!confirm('Are you sure?')) return;
-    await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
-}
-
-// Services
-function showAddServiceModal() {
-    document.getElementById('addServiceForm').reset();
-    document.getElementById('addServiceForm').removeAttribute('data-editing-id');
-    showModal('addServiceModal');
-}
-async function deleteService(id) {
-    if (!confirm('Are you sure? This will delete all sub-services.')) return;
-    await fetch(`/api/admin/services/${id}`, { method: 'DELETE' });
-}
-// ... and so on for all other functions. This is a representative sample.
-
-// --- Text-to-Speech ---
-function formatQueueNumberForSpeech(number) {
-    // "R007" -> "R, 0, 0, 7"
-    return number.split('').join(', ');
-}
-
+// --- Utilities ---
 function speak(text) {
-    if (!('speechSynthesis' in window)) {
-        console.warn("Text-to-speech not supported in this browser.");
-        return;
-    }
+    if (!('speechSynthesis' in window)) return;
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
 }
 
-// Global handlers
-window.logout = logout;
-window.showAddBranchModal = showAddBranchModal;
-window.showEditBranchModal = showEditBranchModal;
-window.deleteBranch = deleteBranch;
-window.showAddUserModal = showAddUserModal;
-window.showEditUserModal = showEditUserModal;
-window.deleteUser = deleteUser;
-window.showAddServiceModal = showAddServiceModal;
-window.deleteService = deleteService;
-// etc.
+function showPage(pageId) {
+    document.querySelectorAll('.page-container, #queueSystemPage, #publicDisplayPage, #staffLoginPage, #staffDashboard, #adminDashboard').forEach(p => p.classList.add('hidden'));
+    const page = document.getElementById(pageId);
+    if(page) page.classList.remove('hidden');
+}
+
+function showNavbar() {
+    const nav = document.getElementById('navbar');
+    if(nav) {
+        nav.classList.remove('hidden');
+        document.getElementById('userRole').textContent = `${state.currentUser.full_name} (${state.currentUser.role})`;
+    }
+}
+function hideNavbar() {
+    const nav = document.getElementById('navbar');
+    if(nav) nav.classList.add('hidden');
+}
+
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('notificationContainer');
+    if (!container) return;
+    const notif = document.createElement('div');
+    notif.className = `bg-white rounded-lg shadow-lg p-4 mb-4 fade-in border-l-4 border-${type === 'success' ? 'green' : 'red'}-500`;
+    notif.textContent = message;
+    container.appendChild(notif);
+    setTimeout(() => notif.remove(), 5000);
+}
+
+function setupEventListeners() {
+    document.getElementById('staffLoginForm')?.addEventListener('submit', (e) => { e.preventDefault(); staffLogin(); });
+}
+
+window.showPublicDisplay = () => showPage('publicDisplayPage');
+window.showStaffLoginPage = () => showPage('staffLoginPage');
+window.logout = () => { fetch('/api/logout', {method: 'POST'}).then(() => { state.currentUser = null; renderAllComponents(); })};
+window.callNext = callNext;

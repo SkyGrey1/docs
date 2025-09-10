@@ -1,10 +1,12 @@
-Flask==2.2.2
-Flask-SocketIO==5.3.3
-Flask-SQLAlchemy==3.0.3
-Flask-Login==0.6.2
-Flask-WTF==1.0.1
-Flask-Migrate==3.1.0
-python-dotenv==0.21.0
-eventlet==0.33.1
-textblob==0.17.1
-Werkzeug==2.2.2
+Flask
+Flask-SocketIO
+Flask-SQLAlchemy
+Flask-Migrate
+Flask-Login
+Flask-Mail
+Flask-WTF
+# mysqlclient # Required for MySQL, commented out for SQLite development
+python-dotenv
+eventlet
+textblob
+Werkzeug
