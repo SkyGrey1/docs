@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holy Child College of Davao Queue Management System</title>
+    <script src="https://cdn.tailwindcss.com "></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js "></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css ">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-gray-50">
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-badge"></div>
+
+    <!-- Navigation -->
+    <nav id="navbar" class="bg-white shadow-lg sticky top-0 z-50 hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-clipboard-list text-blue-600 text-2xl mr-3"></i>
+                    <span class="font-semibold text-xl text-gray-800">QueueSys</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="userRole" class="text-sm text-gray-600"></span>
+                    <span id="currentBranch" class="text-sm text-gray-600 hidden"></span>
+                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Queue System Page -->
+    <div id="queueSystemPage" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-red-50">
+        <div class="max-w-4xl w-full mx-4">
+            <div class="text-center mb-10">
+                <i class="fas fa-clipboard-list text-6xl text-blue-600 mb-4"></i>
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">Holy Child College of Davao Queue Management System</h1>
+                <p class="text-gray-600">Select the service you need</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Registrar Service -->
+                <div id="registrarServiceCard" onclick="showQueueTypeModal('registrar')" class="service-card bg-white rounded-2xl shadow-xl p-8 cursor-pointer hover:shadow-2xl border-t-4 border-blue-500 elevated-card">
+                    <div class="service-availability-status" id="registrarAvailabilityStatus"></div>
+                    <div class="text-center">
+                        <div class="service-icon bg-blue-100">
+                            <i class="fas fa-user-graduate text-4xl text-blue-600"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-3">Registrar</h2>
+                        <p class="text-gray-600 mb-6">Enrollment, transcripts, records, and academic services</p>
+                        <div class="inline-flex items-center text-blue-600 font-medium">
+                            Select Service <i class="fas fa-arrow-right mr-2"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cashier Service -->
+                <div id="cashierServiceCard" onclick="showQueueTypeModal('cashier')" class="service-card bg-white rounded-2xl shadow-xl p-8 cursor-pointer hover:shadow-2xl border-t-4 border-red-500 elevated-card">
+                    <div class="service-availability-status" id="cashierAvailabilityStatus"></div>
+                    <div class="text-center">
+                        <div class="service-icon bg-red-100">
+                            <i class="fas fa-money-bill-wave text-4xl text-red-600"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-3">Cashier</h2>
+                        <p class="text-gray-600 mb-6">Payments, fees, fines, and financial transactions</p>
+                        <div class="inline-flex items-center text-red-600 font-medium">
+                            Select Service <i class="fas fa-arrow-right mr-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 flex justify-center space-x-6">
+                <button onclick="showCheckQueuePage()" class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-3 px-6 rounded-lg shadow-md transition btn-secondary">
+                    <i class="fas fa-search mr-2"></i>Find My Queue
+                </button>
+                <button onclick="showPublicDisplay()" class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-3 px-6 rounded-lg shadow-md transition btn-secondary">
+                    <i class="fas fa-tv mr-2"></i>Queue Display
+                </button>
+                <button onclick="showCalendarPage()" class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-3 px-6 rounded-lg shadow-md transition btn-secondary">
+                    <i class="fas fa-calendar-alt mr-2"></i>Office Hours
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Login Button -->
+    <div id="staffLoginButton" class="staff-login-btn" onclick="showStaffLoginPage()" title="Staff Login">
+        <i class="fas fa-user-shield"></i>
+    </div>
+
+    <!-- Public Queue Display Page -->
+    <div id="publicDisplayPage" class="public-display min-h-screen hidden">
+        <button class="display-back-btn" onclick="backToQueueSystem()">
+            <i class="fas fa-arrow-left mr-2"></i> Back
+        </button>
+        <div class="display-time" id="displayTime"></div>
+        <div class="display-header">
+            <h1 class="text-3xl font-bold">Holy Child College of Davao Queue Management System</h1>
+            <p class="text-gray-300">Current Queue Status</p>
+        </div>
+
+        <div class="display-content">
+            <div class="display-service-grid">
+                <!-- Registrar Queue Display -->
+                <div class="display-service-card glass-effect">
+                    <h2 class="display-service-title">REGISTRAR</h2>
+                    <div class="display-now-serving">NOW SERVING</div>
+                    <div id="publicRegistrarNumber" class="display-current-number">-</div>
+                    <div id="publicRegistrarStatus" class="display-status"></div>
+
+                    <div class="display-waiting">
+                        <h3 class="display-waiting-title">WAITING</h3>
+                        <div id="publicRegistrarWaiting" class="display-waiting-list">
+                            <!-- Waiting numbers will be added here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cashier Queue Display -->
+                <div class="display-service-card glass-effect">
+                    <h2 class="display-service-title">CASHIER</h2>
+                    <div class="display-now-serving">NOW SERVING</div>
+                    <div id="publicCashierNumber" class="display-current-number">-</div>
+                    <div id="publicCashierStatus" class="display-status"></div>
+
+                    <div class="display-waiting">
+                        <h3 class="display-waiting-title">WAITING</h3>
+                        <div id="publicCashierWaiting" class="display-waiting-list">
+                            <!-- Waiting numbers will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="display-footer">
+            <p>© 2023 Holy Child College of Davao Queue Management System. All rights reserved.</p>
+        </div>
+    </div>
+
+    <!-- Sub-Service Selection Page -->
+    <div id="subServicePage" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-red-50 hidden">
+        <div class="max-w-4xl w-full mx-4">
+            <div class="text-center mb-8">
+                <h1 id="subServiceTitle" class="text-3xl font-bold text-gray-800 mb-2">Select Sub-Service</h1>
+                <p id="subServiceDescription" class="text-gray-600">Choose the specific service you need</p>
+            </div>
+
+            <div id="subServiceContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Sub-services will be dynamically added here -->
+            </div>
+
+            <div class="mt-8 text-center">
+                <button onclick="backToQueueSystem()" class="text-gray-600 font-medium hover:underline">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Services
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Input Modal -->
+    <div id="emailInputModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Enter Your Contact Information</h2>
+                <span class="close" onclick="closeModal('emailInputModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p class="text-gray-600 mb-6">We'll send you notifications about your queue status</p>
+
+                <form id="emailInputForm" class="space-y-4">
+                    <div class="form-group">
+                        <label class="form-label" for="studentName">Full Name</label>
+                        <input type="text" id="studentName" required
+                               class="form-control form-input"
+                               placeholder="Enter your full name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="studentEmail">Email Address</label>
+                        <input type="email" id="studentEmail" required
+                               class="form-control form-input"
+                               placeholder="Enter your email address">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="studentId">Student ID (Optional)</label>
+                        <input type="text" id="studentId"
+                               class="form-control form-input"
+                               placeholder="Enter your student ID">
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal('emailInputModal')"
+                                class="btn btn-secondary">
+                            Skip
+                        </button>
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Continue
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Check Queue Page -->
+    <div id="checkQueuePage" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-red-50 hidden">
+        <div class="max-w-md w-full mx-4">
+            <div class="bg-white rounded-2xl shadow-xl p-8 fade-in login-form-container">
+                <div class="text-center mb-6">
+                    <i class="fas fa-search text-5xl text-blue-600 mb-4"></i>
+                    <h2 class="text-2xl font-bold text-gray-800">Check Queue Status</h2>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="form-group">
+                        <label class="form-label" for="queueNumberInput">
+                            <i class="fas fa-ticket-alt mr-2"></i>Enter Your Queue Number
+                        </label>
+                        <input type="text" id="queueNumberInput"
+                               class="form-control form-input"
+                               placeholder="e.g., R001">
+                    </div>
+
+                    <button onclick="checkQueueStatus()"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition transform hover:scale-105 btn-primary">
+                        <i class="fas fa-search mr-2"></i>Check Status
+                    </button>
+
+                    <button onclick="backToQueueSystem()"
+                            class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 rounded-lg transition btn-secondary">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Services
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Queue Result Page -->
+    <div id="queueResultPage" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-red-50 hidden">
+        <div class="max-w-2xl w-full mx-4">
+            <div id="queueResultContent" class="fade-in">
+                <!-- Queue result will be dynamically added here -->
+            </div>
+
+            <div class="mt-8 text-center">
+                <button onclick="backToQueueSystem()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition btn-primary">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Queue System
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Page -->
+    <div id="calendarPage" class="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 hidden">
+        <div class="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+            <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 fade-in admin-card">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-calendar-alt text-blue-600 mr-3"></i>Office Hours Calendar
+                    </h2>
+                    <div class="flex space-x-2">
+                        <button onclick="backToQueueSystem()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                        <button id="editCalendarBtn" onclick="toggleEditMode()" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition btn-primary">
+                            <i class="fas fa-edit mr-2"></i>Edit Calendar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Queue Status Widget -->
+                <div id="calendarQueueWidget" class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white mb-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm opacity-90">Your Current Queue</p>
+                            <p id="calendarQueueNumber" class="text-2xl font-bold">-</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm opacity-90">Status</p>
+                            <p id="calendarQueueStatus" class="font-semibold">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar Navigation -->
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="previousMonth()" class="text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-chevron-left text-xl"></i>
+                    </button>
+                    <h3 id="currentMonth" class="text-xl font-bold text-gray-800"></h3>
+                    <button onclick="nextMonth()" class="text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-chevron-right text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- Calendar Container -->
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <div>Sun</div>
+                        <div>Mon</div>
+                        <div>Tue</div>
+                        <div>Wed</div>
+                        <div>Thu</div>
+                        <div>Fri</div>
+                        <div>Sat</div>
+                    </div>
+                    <div id="calendarGrid" class="calendar-grid">
+                        <!-- Calendar days will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- Office Hours Legend -->
+                <div class="calendar-legend">
+                    <div class="calendar-legend-item">
+                        <div class="calendar-legend-color" style="background-color: rgba(30, 64, 175, 0.2);"></div>
+                        <span>Registrar Office Hours</span>
+                    </div>
+                    <div class="calendar-legend-item">
+                        <div class="calendar-legend-color" style="background-color: rgba(185, 28, 28, 0.2);"></div>
+                        <span>Cashier Office Hours</span>
+                    </div>
+                    <div class="calendar-legend-item">
+                        <div class="calendar-legend-color" style="background-color: #fee2e2;"></div>
+                        <span>Holiday</span>
+                    </div>
+                    <div class="calendar-legend-item">
+                        <div class="calendar-legend-color" style="background-color: #fef3c7;"></div>
+                        <span>Break Time</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Login Page -->
+    <div id="staffLoginPage" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-red-50 hidden">
+        <div class="max-w-md w-full mx-4">
+            <div class="bg-white rounded-2xl shadow-xl p-8 fade-in login-form-container">
+                <div class="login-form-header">
+                    <i class="fas fa-user-shield text-6xl mb-4"></i>
+                    <h1 class="text-3xl font-bold">Staff Login</h1>
+                    <p class="mt-2">Access the staff dashboard</p>
+                </div>
+
+                <div class="login-form-body">
+                    <form id="staffLoginForm" class="space-y-6">
+                        <div class="form-group">
+                            <label class="form-label" for="staffUsername">
+                                <i class="fas fa-user mr-2"></i>Username
+                            </label>
+                            <input type="text" id="staffUsername" required
+                                   class="form-control form-input"
+                                   placeholder="Enter your username">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="staffPassword">
+                                <i class="fas fa-lock mr-2"></i>Password
+                            </label>
+                            <input type="password" id="staffPassword" required
+                                   class="form-control form-input"
+                                   placeholder="Enter your password">
+                        </div>
+
+                        <button type="submit"
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition transform hover:scale-105 btn-primary">
+                            <i class="fas fa-sign-in-alt mr-2"></i>Login
+                        </button>
+
+                        <button type="button" onclick="backToQueueSystem()"
+                                class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 rounded-lg transition btn-secondary">
+                            <i class="fas fa-arrow-left mr-2"></i>Back to Queue System
+                        </button>
+                    </form>
+
+                    <div class="mt-6 text-center">
+                        <p class="text-gray-600">Don't have an account?</p>
+                        <button onclick="showRegistrationModal()" class="text-blue-600 hover:text-blue-800 font-medium">
+                            Register as Staff
+                        </button>
+                    </div>
+
+                    <div class="mt-6 text-center text-sm text-gray-600">
+                        <p>Demo Credentials:</p>
+                        <p class="text-xs mt-1">Registrar Staff: Username: registrar1, Password: registrar123</p>
+                        <p class="text-xs">Cashier Staff: Username: cashier1, Password: cashier123</p>
+                        <p class="text-xs">Admin: Username: admin1, Password: admin123</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Dashboard -->
+    <div id="staffDashboard" class="hidden min-h-screen">
+        <div class="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Current Queue -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 fade-in admin-card">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-users text-blue-600 mr-3"></i>Current Queue
+                    </h2>
+                    <div id="currentQueueList" class="space-y-3">
+                        <!-- Queue items will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- Queue Management -->
+                <div class="bg-white rounded-2xl shadow-lg p-6 fade-in admin-card">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-cog text-blue-600 mr-3"></i>Queue Management
+                    </h2>
+                    <div id="nowServing" class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white mb-6">
+                        <p class="text-sm opacity-90">Now Serving</p>
+                        <p id="servingNumber" class="text-4xl font-bold">-</p>
+                        <p id="servingStudent" class="text-sm opacity-90 mt-2">No one currently</p>
+                        <div id="servingTimer" class="mt-3 hidden">
+                            <p class="text-sm opacity-90">Time Remaining</p>
+                            <p id="servingTimeRemaining" class="font-semibold countdown blink">--:--</p>
+                        </div>
+                    </div>
+
+                    <!-- Queue Status Buttons -->
+                    <div class="queue-status-buttons">
+                        <button onclick="callNext()"
+                                class="queue-status-btn waiting">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Call Next</span>
+                        </button>
+                        <button onclick="markPresent()"
+                                class="queue-status-btn serving">
+                            <i class="fas fa-user-check"></i>
+                            <span>Start Serving</span>
+                        </button>
+                        <button onclick="completeService()"
+                                class="queue-status-btn done">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Done</span>
+                        </button>
+                        <button onclick="markNoShow()"
+                                class="queue-status-btn no-show">
+                            <i class="fas fa-user-times"></i>
+                            <span>No Show</span>
+                        </button>
+                        <button onclick="cancelQueue()"
+                                class="queue-status-btn cancelled">
+                            <i class="fas fa-times-circle"></i>
+                            <span>Cancel</span>
+                        </button>
+                    </div>
+
+                    <!-- Service Availability -->
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <h3 class="font-semibold text-gray-800 mb-3">Service Availability</h3>
+                        <div class="space-y-3" id="serviceAvailabilitySection">
+                            <!-- Service toggles will be dynamically added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-Service Management -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 mt-6 fade-in admin-card">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-800">
+                        <i class="fas fa-cogs text-blue-600 mr-3"></i>Sub-Service Management
+                    </h3>
+                    <button onclick="showAddSubServiceModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition btn-primary">
+                        <i class="fas fa-plus mr-2"></i>Add Sub-Service
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Registrar Sub-Services -->
+                    <div class="border-l-4 border-blue-500 pl-4" id="registrarSubServicesSection">
+                        <h4 class="font-semibold text-gray-800 mb-3">Registrar Sub-Services</h4>
+                        <div id="registrarSubServices" class="space-y-2">
+                            <!-- Sub-services will be dynamically added here -->
+                        </div>
+                    </div>
+
+                    <!-- Cashier Sub-Services -->
+                    <div class="border-l-4 border-red-500 pl-4" id="cashierSubServicesSection">
+                        <h4 class="font-semibold text-gray-800 mb-3">Cashier Sub-Services</h4>
+                        <div id="cashierSubServices" class="space-y-2">
+                            <!-- Sub-services will be dynamically added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 mt-6 fade-in admin-card">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-history text-blue-600 mr-3"></i>Recent Activity
+                </h3>
+                <div id="activityLog" class="space-y-2 max-h-64 overflow-y-auto">
+                    <!-- Activity items will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="hidden min-h-screen">
+        <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+            <!-- Admin Dashboard Header with Logout Button -->
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-tachometer-alt text-blue-600 mr-3"></i>Admin Dashboard
+                </h2>
+                <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                </button>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div class="admin-stat-card fade-in">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm opacity-90">Total Queues Today</p>
+                            <p id="totalQueues" class="text-3xl font-bold">0</p>
+                        </div>
+                        <i class="fas fa-clipboard-list text-4xl opacity-50"></i>
+                    </div>
+                </div>
+                <div class="admin-stat-card fade-in">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm opacity-90">Served</p>
+                            <p id="servedQueues" class="text-3xl font-bold">0</p>
+                        </div>
+                        <i class="fas fa-check-circle text-4xl opacity-50"></i>
+                    </div>
+                </div>
+                <div class="admin-stat-card fade-in">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm opacity-90">Voided</p>
+                            <p id="voidedQueues" class="text-3xl font-bold">0</p>
+                        </div>
+                        <i class="fas fa-times-circle text-4xl opacity-50"></i>
+                    </div>
+                </div>
+                <div class="admin-stat-card fade-in">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm opacity-90">Avg. Wait Time</p>
+                            <p id="avgWaitTime" class="text-3xl font-bold">0m</p>
+                        </div>
+                        <i class="fas fa-clock text-4xl opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Management Tabs -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 fade-in admin-card">
+                <div class="tab admin-tab">
+                    <button class="tablinks active" onclick="openTab(event, 'branchesTab')">
+                        <i class="fas fa-building mr-2"></i>Branches
+                    </button>
+                    <button class="tablinks" onclick="openTab(event, 'usersTab')">
+                        <i class="fas fa-users mr-2"></i>Users
+                    </button>
+                    <button class="tablinks" onclick="openTab(event, 'pendingRegistrationsTab')">
+                        <i class="fas fa-user-clock mr-2"></i>Pending Registrations
+                    </button>
+                    <button class="tablinks" onclick="openTab(event, 'servicesTab')">
+                        <i class="fas fa-cogs mr-2"></i>Services
+                    </button>
+                    <button class="tablinks" onclick="openTab(event, 'feedbackTab')">
+                        <i class="fas fa-comment-dots mr-2"></i>Feedback
+                    </button>
+                    <button class="tablinks" onclick="openTab(event, 'calendarTab')">
+                        <i class="fas fa-calendar-alt mr-2"></i>Calendar
+                    </button>
+                </div>
+
+                <!-- Branches Tab -->
+                <div id="branchesTab" class="tabcontent admin-tab-content" style="display: block;">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">Branch Management</h3>
+                        <button onclick="showAddBranchModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition btn-primary">
+                            <i class="fas fa-plus mr-2"></i>Add Branch
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Branch Name</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Address</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Contact</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Status</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="branchesTableBody">
+                                <!-- Branch rows will be dynamically added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Users Tab -->
+                <div id="usersTab" class="tabcontent admin-tab-content">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">User Management</h3>
+                        <button onclick="showAddUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition btn-primary">
+                            <i class="fas fa-plus mr-2"></i>Add User
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Username</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Name</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Role</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Branch</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Status</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- User rows will be dynamically added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pending Registrations Tab -->
+                <div id="pendingRegistrationsTab" class="tabcontent admin-tab-content">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">Pending Registrations</h3>
+                        <div class="text-sm text-gray-600">
+                            <span id="pendingCount">0</span> pending registrations
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Name</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Username</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Email</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Role</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Branch</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Date</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingRegistrationsTableBody">
+                                <!-- Pending registration rows will be dynamically added here -->
+                            </tbody>
+                        </table>
+                        <div id="noPendingRegistrations" class="text-center py-8 text-gray-500 hidden">
+                            No pending registrations
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Services Tab -->
+                <div id="servicesTab" class="tabcontent admin-tab-content">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">Service Management</h3>
+                        <button onclick="showAddServiceModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition btn-primary">
+                            <i class="fas fa-plus mr-2"></i>Add Service
+                        </button>
+                    </div>
+
+                    <!-- Service Reports Section -->
+                    <div class="service-reports">
+                        <div class="service-reports-tabs">
+                            <div class="service-reports-tab active" onclick="openServiceReportTab(event, 'registrarReport')">
+                                <i class="fas fa-user-graduate mr-2"></i>Registrar Reports
+                            </div>
+                            <div class="service-reports-tab" onclick="openServiceReportTab(event, 'cashierReport')">
+                                <i class="fas fa-money-bill-wave mr-2"></i>Cashier Reports
+                            </div>
+                        </div>
+
+                        <!-- Registrar Report Content -->
+                        <div id="registrarReport" class="service-reports-content active">
+                            <div class="service-report-summary">
+                                <div class="service-report-card">
+                                    <div class="service-report-card-title">Total Queues</div>
+                                    <div class="service-report-card-value" id="registrarTotalQueues">0</div>
+                                    <div class="service-report-card-subtitle">Today</div>
+                                </div>
+                                <div class="service-report-card">
+                                    <div class="service-report-card-title">Served</div>
+                                    <div class="service-report-card-value" id="registrarServedQueues">0</div>
+                                    <div class="service-report-card-subtitle">Today</div>
+                                </div>
+                                <div class="service-report-card">
+                                    <div class="service-report-card-title">Avg. Wait Time</div>
+                                    <div class="service-report-card-value" id="registrarAvgWaitTime">0m</div>
+                                    <div class="service-report-card-subtitle">Today</div>
+                                </div>
+                                <div class="service-report-card">
+                                    <div class="service-report-card-title">Peak Hour</div>
+                                    <div class="service-report-card-value" id="registrarPeakHour">-</div>
+                                    <div class="service-report-card-subtitle">Today</div>
+                                </div>
+                            </div>
+
+                            <div class="report-card">
+                                <h3 class="text-lg font-semibold text-blue-600 mb-4">
+                                    <i class="fas fa-chart-bar mr-2"></i>Registrar Queue Analytics
+                                </h3>
+                                <div class="chart-container">
+                                    <canvas id="registrarAnalyticsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cashier Report Content -->
+                        <div id="cashierReport" class="service-reports-content">
+                            <div class="service-report-summary">
+                                <div class="service-report-card">
+                                    <div class="service-report-card-title">Total Queues</div>
+                                    <div class="service-report-card-value" id="cashierTotalQueues">0</div>
+                                    <div class="service-report-card-subtitle">Today</div>
+                                </div>
+                                <div class="service-report-card">
+                                    <div class="service-report-card-title">Served</div>
+                                    <div class="service-report-card-value" id="cashierServedQueues">0</div>
+                                    <div class="service-report-card-subtitle">Today</div>
+                                </div>
+                                <div class="service-report-card">
+                                    <div class="service-report-card-title">Avg. Wait Time</div>
+                                    <div class="service-report-card-value" id="cashierAvgWaitTime">0m</div>
+                                    <div class="service-report-card-subtitle">Today</div>
+                                </div>
+                                <div class="service-report-card">
+                                    <div class="service-report-card-title">Peak Hour</div>
+                                    <div class="service-report-card-value" id="cashierPeakHour">-</div>
+                                    <div class="service-report-card-subtitle">Today</div>
+                                </div>
+                            </div>
+
+                            <div class="report-card">
+                                <h3 class="text-lg font-semibold text-red-600 mb-4">
+                                    <i class="fas fa-chart-bar mr-2"></i>Cashier Queue Analytics
+                                </h3>
+                                <div class="chart-container">
+                                    <canvas id="cashierAnalyticsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-container mt-6">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Service Name</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Description</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Icon</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Status</th>
+                                    <th class="py-2 px-4 border-b border-gray-200 text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="servicesTableBody">
+                                <!-- Service rows will be dynamically added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Feedback Tab -->
+                <div id="feedbackTab" class="tabcontent admin-tab-content">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Feedback Management</h3>
+
+                    <!-- Feedback Analytics -->
+                    <div class="feedback-analytics">
+                        <div class="feedback-analytics-card">
+                            <div class="feedback-analytics-card-title">Total Feedback</div>
+                            <div class="feedback-analytics-card-value" id="totalFeedback">0</div>
+                            <div class="feedback-analytics-card-subtitle">All Time</div>
+                        </div>
+                        <div class="feedback-analytics-card">
+                            <div class="feedback-analytics-card-title">Average Rating</div>
+                            <div class="feedback-analytics-card-value" id="avgRating">0.0</div>
+                            <div class="feedback-analytics-card-subtitle">Out of 5.0</div>
+                        </div>
+                        <div class="feedback-analytics-card">
+                            <div class="feedback-analytics-card-title">Positive Feedback</div>
+                            <div class="feedback-analytics-card-value" id="positiveFeedback">0%</div>
+                            <div class="feedback-analytics-card-subtitle">Sentiment Analysis</div>
+                        </div>
+                        <div class="feedback-analytics-card">
+                            <div class="feedback-analytics-card-title">Negative Feedback</div>
+                            <div class="feedback-analytics-card-value" id="negativeFeedback">0%</div>
+                            <div class="feedback-analytics-card-subtitle">Sentiment Analysis</div>
+                        </div>
+                    </div>
+
+                    <!-- Feedback Charts -->
+                    <div class="feedback-charts">
+                        <div class="feedback-chart-card">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                                <i class="fas fa-star-half-alt mr-2"></i>Rating Distribution
+                            </h3>
+                            <div class="chart-container">
+                                <canvas id="ratingDistributionChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="feedback-chart-card">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                                <i class="fas fa-smile mr-2"></i>Sentiment Analysis
+                            </h3>
+                            <div class="chart-container">
+                                <canvas id="sentimentAnalysisChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="feedback-chart-card">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                                <i class="fas fa-chart-line mr-2"></i>Feedback Over Time
+                            </h3>
+                            <div class="chart-container">
+                                <canvas id="feedbackOverTimeChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="feedback-chart-card">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                                <i class="fas fa-th-large mr-2"></i>Feedback by Service
+                            </h3>
+                            <div class="chart-container">
+                                <canvas id="feedbackByServiceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="feedbackList" class="feedback-container space-y-3 mt-6">
+                        <!-- Feedback items will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- Calendar Tab -->
+                <div id="calendarTab" class="tabcontent admin-tab-content">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">Calendar Management</h3>
+                        <button onclick="toggleCalendarEditMode()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition btn-primary">
+                            <i class="fas fa-edit mr-2"></i><span id="calendarEditModeText">Edit Calendar</span>
+                        </button>
+                    </div>
+
+                    <!-- Calendar Navigation -->
+                    <div class="flex justify-between items-center mb-6">
+                        <button onclick="adminPreviousMonth()" class="text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-chevron-left text-xl"></i>
+                        </button>
+                        <h3 id="adminCurrentMonth" class="text-xl font-bold text-gray-800"></h3>
+                        <button onclick="adminNextMonth()" class="text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-chevron-right text-xl"></i>
+                        </button>
+                    </div>
+
+                    <!-- Calendar Container -->
+                    <div class="calendar-container">
+                        <div class="calendar-header">
+                            <div>Sun</div>
+                            <div>Mon</div>
+                            <div>Tue</div>
+                            <div>Wed</div>
+                            <div>Thu</div>
+                            <div>Fri</div>
+                            <div>Sat</div>
+                        </div>
+                        <div id="adminCalendarGrid" class="calendar-grid">
+                            <!-- Calendar days will be dynamically added here -->
+                        </div>
+                    </div>
+
+                    <!-- Office Hours Legend -->
+                    <div class="calendar-legend">
+                        <div class="calendar-legend-item">
+                            <div class="calendar-legend-color" style="background-color: rgba(30, 64, 175, 0.2);"></div>
+                            <span>Registrar Office Hours</span>
+                        </div>
+                        <div class="calendar-legend-item">
+                            <div class="calendar-legend-color" style="background-color: rgba(185, 28, 28, 0.2);"></div>
+                            <span>Cashier Office Hours</span>
+                        </div>
+                        <div class="calendar-legend-item">
+                            <div class="calendar-legend-color" style="background-color: #fee2e2;"></div>
+                            <span>Holiday</span>
+                        </div>
+                        <div class="calendar-legend-item">
+                            <div class="calendar-legend-color" style="background-color: #fef3c7;"></div>
+                            <span>Break Time</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Branch Modal -->
+    <div id="addBranchModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Add New Branch</h2>
+                <span class="close" onclick="closeModal('addBranchModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addBranchForm" class="space-y-4">
+                    <div class="form-group">
+                        <label class="form-label" for="branchName">Branch Name</label>
+                        <input type="text" id="branchName" required
+                               class="form-control form-input"
+                               placeholder="Enter branch name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="branchAddress">Address</label>
+                        <textarea id="branchAddress" required
+                                  class="form-control form-input"
+                                  placeholder="Enter branch address" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="branchContact">Contact Number</label>
+                        <input type="text" id="branchContact" required
+                               class="form-control form-input"
+                               placeholder="Enter contact number">
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal('addBranchModal')"
+                                class="btn btn-secondary">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Add Branch
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Add New User</h2>
+                <span class="close" onclick="closeModal('addUserModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm" class="space-y-4">
+                    <div class="form-group">
+                        <label class="form-label" for="newUsername">Username</label>
+                        <input type="text" id="newUsername" required
+                               class="form-control form-input"
+                               placeholder="Enter username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="newFullName">Full Name</label>
+                        <input type="text" id="newFullName" required
+                               class="form-control form-input"
+                               placeholder="Enter full name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="newPassword">Password</label>
+                        <input type="password" id="newPassword" required
+                               class="form-control form-input"
+                               placeholder="Enter password">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="newUserRole">Role</label>
+                        <select id="newUserRole" required
+                                class="form-control form-input">
+                            <option value="registrar">Registrar Staff</option>
+                            <option value="cashier">Cashier Staff</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="newUserBranch">Branch</label>
+                        <select id="newUserBranch" required
+                                class="form-control form-input">
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal('addUserModal')"
+                                class="btn btn-secondary">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Add User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Service Modal -->
+    <div id="addServiceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Add New Service</h2>
+                <span class="close" onclick="closeModal('addServiceModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addServiceForm" class="space-y-4">
+                    <div class="form-group">
+                        <label class="form-label" for="serviceName">Service Name</label>
+                        <input type="text" id="serviceName" required
+                               class="form-control form-input"
+                               placeholder="Enter service name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="serviceDescription">Description</label>
+                        <textarea id="serviceDescription" required
+                                  class="form-control form-input"
+                                  placeholder="Enter service description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="serviceIcon">Icon</label>
+                        <div class="icon-selector" id="serviceIconSelector">
+                            <div class="icon-option" data-icon="fa-user-graduate">
+                                <i class="fas fa-user-graduate"></i>
+                                <span>User Graduate</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-money-bill-wave">
+                                <i class="fas fa-money-bill-wave"></i>
+                                <span>Money Bill</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-file-alt">
+                                <i class="fas fa-file-alt"></i>
+                                <span>File</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-edit">
+                                <i class="fas fa-edit"></i>
+                                <span>Edit</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-certificate">
+                                <i class="fas fa-certificate"></i>
+                                <span>Certificate</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-exchange-alt">
+                                <i class="fas fa-exchange-alt"></i>
+                                <span>Exchange</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-graduation-cap">
+                                <i class="fas fa-graduation-cap"></i>
+                                <span>Graduation</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-id-card">
+                                <i class="fas fa-id-card"></i>
+                                <span>ID Card</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-receipt">
+                                <i class="fas fa-receipt"></i>
+                                <span>Receipt</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-hand-holding-usd">
+                                <i class="fas fa-hand-holding-usd"></i>
+                                <span>Hand Holding</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-undo">
+                                <i class="fas fa-undo"></i>
+                                <span>Undo</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-exclamation-triangle">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Warning</span>
+                            </div>
+                        </div>
+                        <input type="hidden" id="serviceIcon" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="serviceColor">Color</label>
+                        <select id="serviceColor" required
+                                class="form-control form-input">
+                            <option value="blue">Blue</option>
+                            <option value="red">Red</option>
+                            <option value="green">Green</option>
+                            <option value="purple">Purple</option>
+                            <option value="yellow">Yellow</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal('addServiceModal')"
+                                class="btn btn-secondary">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Add Service
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Sub-Service Modal -->
+    <div id="addSubServiceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Add New Sub-Service</h2>
+                <span class="close" onclick="closeModal('addSubServiceModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addSubServiceForm" class="space-y-4">
+                    <div class="form-group">
+                        <label class="form-label" for="subServiceParent">Service</label>
+                        <select id="subServiceParent" required
+                                class="form-control form-input">
+                            <option value="registrar">Registrar</option>
+                            <option value="cashier">Cashier</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="subServiceName">Sub-Service Name</label>
+                        <input type="text" id="subServiceName" required
+                               class="form-control form-input"
+                               placeholder="Enter sub-service name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="subServiceDescription">Description</label>
+                        <textarea id="subServiceDescription" required
+                                  class="form-control form-input"
+                                  placeholder="Enter sub-service description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="subServiceIcon">Icon</label>
+                        <div class="icon-selector" id="subServiceIconSelector">
+                            <div class="icon-option" data-icon="fa-user-plus">
+                                <i class="fas fa-user-plus"></i>
+                                <span>User Plus</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-file-alt">
+                                <i class="fas fa-file-alt"></i>
+                                <span>File</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-edit">
+                                <i class="fas fa-edit"></i>
+                                <span>Edit</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-certificate">
+                                <i class="fas fa-certificate"></i>
+                                <span>Certificate</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-exchange-alt">
+                                <i class="fas fa-exchange-alt"></i>
+                                <span>Exchange</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-graduation-cap">
+                                <i class="fas fa-graduation-cap"></i>
+                                <span>Graduation</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-money-bill-wave">
+                                <i class="fas fa-money-bill-wave"></i>
+                                <span>Money Bill</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-exclamation-triangle">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Warning</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-id-card">
+                                <i class="fas fa-id-card"></i>
+                                <span>ID Card</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-receipt">
+                                <i class="fas fa-receipt"></i>
+                                <span>Receipt</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-hand-holding-usd">
+                                <i class="fas fa-hand-holding-usd"></i>
+                                <span>Hand Holding</span>
+                            </div>
+                            <div class="icon-option" data-icon="fa-undo">
+                                <i class="fas fa-undo"></i>
+                                <span>Undo</span>
+                            </div>
+                        </div>
+                        <input type="hidden" id="subServiceIcon" required>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal('addSubServiceModal')"
+                                class="btn btn-secondary">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Add Sub-Service
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Calendar Day Modal -->
+    <div id="editCalendarDayModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit <span id="editCalendarDayDate"></span></h2>
+                <span class="close" onclick="closeModal('editCalendarDayModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="space-y-6">
+                    <!-- Calendar Editor Header -->
+                    <div class="calendar-editor-header">
+                        <div class="calendar-editor-title">Calendar Day Editor</div>
+                        <div class="calendar-editor-actions">
+                            <button onclick="deleteCalendarDay()" class="delete-day-btn">
+                                <i class="fas fa-trash mr-1"></i>Delete Day
+                            </button>
+                            <button onclick="saveCalendarDay()" class="save-day-btn">
+                                <i class="fas fa-save mr-1"></i>Save
+                            </button>
+                            <button onclick="closeModal('editCalendarDayModal')" class="cancel-day-btn">
+                                <i class="fas fa-times mr-1"></i>Cancel
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Holiday Section -->
+                    <div>
+                        <div class="calendar-section-header">
+                            <div class="calendar-section-title">Holiday Status</div>
+                            <div class="calendar-section-actions">
+                                <button onclick="deleteHoliday()" class="delete-section-btn">
+                                    <i class="fas fa-trash mr-1"></i>Delete
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center mb-4">
+                            <input type="checkbox" id="dayIsHoliday" class="mr-2" onchange="toggleHolidayStatus()">
+                            <label for="dayIsHoliday" class="text-sm font-medium">Mark as Holiday (Office Closed)</label>
+                        </div>
+                    </div>
+
+                    <!-- Office Hours Section -->
+                    <div id="officeHoursSection">
+                        <div class="calendar-section-header">
+                            <div class="calendar-section-title">Office Hours</div>
+                            <div class="calendar-section-actions">
+                                <button onclick="deleteOfficeHours()" class="delete-section-btn">
+                                    <i class="fas fa-trash mr-1"></i>Delete
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Registrar Office Hours -->
+                        <div class="office-hours-editor mb-4">
+                            <div class="office-hours-editor-header">
+                                <div class="office-hours-editor-title">Registrar Office Hours</div>
+                                <div class="office-hours-editor-actions">
+                                    <input type="checkbox" id="registrarOfficeOpen" class="mr-2">
+                                    <label for="registrarOfficeOpen" class="text-sm font-medium">Open</label>
+                                </div>
+                            </div>
+                            <div id="registrarOfficeHoursFields" class="office-hours-editor-time">
+                                <input type="time" id="registrarOpenTime" placeholder="Opening Time">
+                                <span>to</span>
+                                <input type="time" id="registrarCloseTime" placeholder="Closing Time">
+                            </div>
+                            <div class="break-time-inputs">
+                                <label class="break-time-label">Break Time:</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="time" id="registrarBreakStartTime" placeholder="Break Start">
+                                    <span>to</span>
+                                    <input type="time" id="registrarBreakEndTime" placeholder="Break End">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cashier Office Hours -->
+                        <div class="office-hours-editor mb-4">
+                            <div class="office-hours-editor-header">
+                                <div class="office-hours-editor-title">Cashier Office Hours</div>
+                                <div class="office-hours-editor-actions">
+                                    <input type="checkbox" id="cashierOfficeOpen" class="mr-2">
+                                    <label for="cashierOfficeOpen" class="text-sm font-medium">Open</label>
+                                </div>
+                            </div>
+                            <div id="cashierOfficeHoursFields" class="office-hours-editor-time">
+                                <input type="time" id="cashierOpenTime" placeholder="Opening Time">
+                                <span>to</span>
+                                <input type="time" id="cashierCloseTime" placeholder="Closing Time">
+                            </div>
+                            <div class="break-time-inputs">
+                                <label class="break-time-label">Break Time:</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="time" id="cashierBreakStartTime" placeholder="Break Start">
+                                    <span>to</span>
+                                    <input type="time" id="cashierBreakEndTime" placeholder="Break End">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Events Section -->
+                    <div>
+                        <div class="calendar-section-header">
+                            <div class="calendar-section-title">Events</div>
+                            <div class="calendar-section-actions">
+                                <button onclick="addCalendarEvent()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition btn-primary">
+                                    <i class="fas fa-plus mr-2"></i>Add Event
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="calendarEventsList" class="space-y-2">
+                            <!-- Events will be dynamically added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Queue Type Selection Modal -->
+    <div id="queueTypeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Select Queue Type</h2>
+                <span class="close" onclick="closeModal('queueTypeModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="queue-type-header">
+                    <h2>Select Queue Type</h2>
+                    <p>Choose the type of queue you want to join</p>
+                </div>
+
+                <div class="queue-type-options">
+                    <div class="queue-type-option normal" onclick="selectQueueTypeInModal('normal')">
+                        <div class="queue-type-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="queue-type-name">Normal Queue</div>
+                        <div class="queue-type-description">Standard queue processing</div>
+                    </div>
+
+                    <div class="queue-type-option priority" onclick="selectQueueTypeInModal('priority')">
+                        <div class="queue-type-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="queue-type-name">Priority Queue</div>
+                        <div class="queue-type-description">Expedited service for urgent matters</div>
+                    </div>
+                </div>
+
+                <div class="continue-btn-container">
+                    <button id="continueToSubServiceBtn" onclick="proceedToSubServiceFromModal()" disabled class="continue-btn">
+                        <span>Continue to Sub-Services</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Required Feedback Modal -->
+    <div id="requiredFeedbackModal" class="feedback-modal" style="display: none;">
+        <div class="feedback-modal-content">
+            <div class="feedback-modal-header">
+                <div class="feedback-modal-icon">
+                    <i class="fas fa-comment-dots"></i>
+                </div>
+                <h3 class="feedback-modal-title">Service Feedback Required</h3>
+            </div>
+            <div class="feedback-modal-body">
+                <p>Thank you for using our service. To help us improve, please rate your experience and provide feedback.</p>
+
+                <div class="feedback-rating" id="modalRatingStars">
+                    <i class="fas fa-star" data-rating="1"></i>
+                    <i class="fas fa-star" data-rating="2"></i>
+                    <i class="fas fa-star" data-rating="3"></i>
+                    <i class="fas fa-star" data-rating="4"></i>
+                    <i class="fas fa-star" data-rating="5"></i>
+                </div>
+
+                <textarea id="modalFeedbackComment" class="feedback-comment" placeholder="Share your experience with us..."></textarea>
+            </div>
+            <div class="feedback-modal-actions">
+                <button class="feedback-skip" onclick="skipFeedback()">Skip for Now</button>
+                <button class="feedback-submit" onclick="submitModalFeedback()">Submit Feedback</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Queue Number Display Modal -->
+    <div id="queueNumberModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Your Queue Number</h2>
+                <span class="close" onclick="closeModal('queueNumberModal')">&times;</span>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-6">
+                    <div class="text-6xl font-bold text-blue-600 mb-4" id="displayedQueueNumber">-</div>
+                    <div class="text-lg text-gray-700 mb-2">Please take note of your queue number</div>
+                    <div class="text-sm text-gray-500">You will be notified when your queue is called</div>
+                </div>
+
+                <div class="bg-blue-50 rounded-lg p-4 mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-medium">Service:</span>
+                        <span id="modalServiceName">-</span>
+                    </div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-medium">Sub-Service:</span>
+                        <span id="modalSubServiceName">-</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="font-medium">Estimated Wait Time:</span>
+                        <span id="modalWaitTime">-</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-center space-x-4">
+                    <button onclick="closeModal('queueNumberModal')"
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-lg transition btn-secondary">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration Modal -->
+    <div id="registrationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Staff Registration</h2>
+                <span class="close" onclick="closeModal('registrationModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="registrationForm" class="space-y-4">
+                    <div class="form-group">
+                        <label class="form-label" for="regFullName">Full Name</label>
+                        <input type="text" id="regFullName" required
+                               class="form-control form-input"
+                               placeholder="Enter your full name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="regUsername">Username</label>
+                        <input type="text" id="regUsername" required
+                               class="form-control form-input"
+                               placeholder="Enter username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="regEmail">Email</label>
+                        <input type="email" id="regEmail" required
+                               class="form-control form-input"
+                               placeholder="Enter email address">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="regPassword">Password</label>
+                        <input type="password" id="regPassword" required
+                               class="form-control form-input"
+                               placeholder="Enter password">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="regConfirmPassword">Confirm Password</label>
+                        <input type="password" id="regConfirmPassword" required
+                               class="form-control form-input"
+                               placeholder="Confirm password">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="regRole">Role</label>
+                        <select id="regRole" required
+                                class="form-control form-input">
+                            <option value="registrar">Registrar Staff</option>
+                            <option value="cashier">Cashier Staff</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="regBranch">Branch</label>
+                        <select id="regBranch" required
+                                class="form-control form-input">
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal('registrationModal')"
+                                class="btn btn-secondary">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Register
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration Status Modal -->
+    <div id="registrationStatusModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Registration Status</h2>
+                <span class="close" onclick="closeModal('registrationStatusModal')">&times;</span>
+            </div>
+            <div class="modal-body text-center">
+                <div id="registrationStatusContent">
+                    <!-- Status content will be dynamically added here -->
+                </div>
+                <div class="mt-6">
+                    <button onclick="closeModal('registrationStatusModal')"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition btn-primary">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
