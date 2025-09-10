@@ -13,6 +13,27 @@ const socket = io(window.location.origin);
 socket.on('connect', () => socket.emit('request_initial_data'));
 socket.on('update_data', (data) => {
     console.log('Received data update');
+
+    // --- TTS Logic ---
+    // Check for newly called numbers before updating state
+    if (state.services && state.services.length > 0 && document.getElementById('publicDisplayPage').offsetParent) {
+        const previousState = { ...state };
+        const newState = { ...state, ...data };
+
+        newState.services.forEach(service => {
+            const serviceName = service.name.toLowerCase();
+            const oldCalledQueue = previousState.queues.find(q => q.service === serviceName && q.status === 'called');
+            const newCalledQueue = newState.queues.find(q => q.service === serviceName && q.status === 'called');
+
+            if (newCalledQueue && (!oldCalledQueue || oldCalledQueue.id !== newCalledQueue.id)) {
+                const formattedNumber = formatQueueNumberForSpeech(newCalledQueue.number);
+                const message = `Now serving, ${formattedNumber}, at the ${service.name} counter.`;
+                speak(message);
+            }
+        });
+    }
+
+    // Merge new data into state
     Object.assign(state, data);
     updateAllUI();
 });
@@ -238,6 +259,23 @@ async function deleteService(id) {
     await fetch(`/api/admin/services/${id}`, { method: 'DELETE' });
 }
 // ... and so on for all other functions. This is a representative sample.
+
+// --- Text-to-Speech ---
+function formatQueueNumberForSpeech(number) {
+    // "R007" -> "R, 0, 0, 7"
+    return number.split('').join(', ');
+}
+
+function speak(text) {
+    if (!('speechSynthesis' in window)) {
+        console.warn("Text-to-speech not supported in this browser.");
+        return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+}
 
 // Global handlers
 window.logout = logout;
